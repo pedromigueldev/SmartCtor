@@ -5,23 +5,23 @@ public record FieldParseError(string Field, string Error);
 public readonly record struct Ok<T> (in T Some);
 public readonly record struct Err<T> (in T Error);
 
-public readonly union Result<T, E>(Ok<T>, Err<E>)
+public readonly union Result<T, E>(Ok<T>, Err<E>) where T : notnull
 {
     public static implicit operator Result<T, E>(in T value) => new Ok<T>(value);
     public static implicit operator Result<T, E>(in E error) => new Err<E>(error);
-    public readonly Result<U, E> Map<U>(Func<T, U> f) => this switch
+    public readonly Result<U, E> Map<U>(Func<T, U> f) where U : notnull => this switch
     {
         Ok<T>(var some) => f(some),
         Err<E> error => error
     };
 
-    public readonly Result<U, E> AndThen<U>(Func<T, Result<U, E>> f) => this switch
+    public readonly Result<U, E> AndThen<U>(Func<T, Result<U, E>> f) where U : notnull => this switch
     {
         Ok<T>(var some) => f(some),
         Err<E> error => error
     };
 
-    public readonly async Task<Result<U, E>> MapAsync<U>(Func<T, Task<U>> f) => this switch
+    public readonly async Task<Result<U, E>> MapAsync<U>(Func<T, Task<U>> f) where U : notnull => this switch
     {
         Ok<T>(var some) => await f(some),
         Err<E> error => error
