@@ -1,0 +1,27 @@
+#!/bin/sh
+
+# Define the LGPL v3 header
+HEADER="// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright (C) $(date +%Y) Pedro Miguel
+"
+
+# Find all staged .cs files (Added, Copied, or Modified)
+STAGED_CS_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.cs$')
+
+for FILE in $STAGED_CS_FILES; do
+    # Check if the file already has the SPDX identifier
+    if ! grep -q "SPDX-License-Identifier: LGPL" "$FILE"; then
+        echo "Adding LGPL header to $FILE..."
+
+        # Prepend the header while preserving original file contents
+        TMP_FILE=$(mktemp)
+        printf "%s\n" "$HEADER" > "$TMP_FILE"
+        cat "$FILE" >> "$TMP_FILE"
+        mv "$TMP_FILE" "$FILE"
+
+        # Re-stage the modified file so it's included in the commit
+        git add "$FILE"
+    fi
+done
+
+exit 0
