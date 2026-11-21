@@ -52,7 +52,6 @@ public class CtorGeneratorAttribute : IIncrementalGenerator
                 extension ({{type.Name}}) {
                     public static Result<{{type.Name}}, List<ValidationResult>> Create ({{constructorParams}}) {
                         var stub = new {{type.Name}}({{constructorParamsNames}});
-                        var context = new ValidationContext(stub, nameof({{type.Name}}), null, null);
                         var validationResults = new List<ValidationResult>();
 
                         {{string.Join("\n", tryCatches)}}
