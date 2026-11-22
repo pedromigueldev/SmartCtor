@@ -54,7 +54,7 @@ public class Create
     public void Create_Fail()
     {
         var stub = StubUser.Create(-1, string.Empty);
-        if (stub is Ok<StubUser>) Assert.Fail("Should not be okay");
+        if (stub is StubUser) Assert.Fail("Should not be okay");
         Assert.IsGreaterThanOrEqualTo(2, stub.UnwrapErr().Count);
     }
 
@@ -62,7 +62,7 @@ public class Create
     public void Create_Fail_Strings()
     {
         var stub = StringTests.Create(string.Empty, null);
-        if (stub is Ok<StringTests>) Assert.Fail("Should not be okay");
+        if (stub is StringTests) Assert.Fail("Should not be okay");
         Assert.IsGreaterThanOrEqualTo(2, stub.UnwrapErr().Count);
     }
 
@@ -71,7 +71,7 @@ public class Create
     {
         var stub = Transaction.Create(50, "123456", [], DateTime.Now);
 
-        if (stub is Err<List<ValidationResult>>(var err))
+        if (stub is List<ValidationResult> err)
         {
             err.ForEach(Console.WriteLine);
             Assert.Fail("Should not be failing");
@@ -88,8 +88,8 @@ public class Create
     {
         var stub = Transaction.Create(1000, "12345", null!, DateTime.MinValue);
 
-        if (stub is Ok<Transaction>) Assert.Fail("Should not be okay");
-        if (stub is Err<List<ValidationResult>>({ Count : < 3 } err))
+        if (stub is Transaction) Assert.Fail("Should not be okay");
+        if (stub is List<ValidationResult>{ Count : < 3 } err)
         {
             err.ForEach(e => TestContext.WriteLine($"{e}"));
             Assert.Fail($"Should be 3 errors. Give {err.Count}");
@@ -109,7 +109,7 @@ public class Create_Struct
     {
         var stub = StubStruct.Create(5, "Valid");
 
-        if (stub is Err<List<ValidationResult>>(var err))
+        if (stub is List<ValidationResult> err)
         {
             err.ForEach(Console.WriteLine);
             Assert.Fail("Should not be failing");
@@ -125,8 +125,8 @@ public class Create_Struct
     {
         var stub = StubStruct.Create(0, "ab");
 
-        if (stub is Ok<StubStruct>) Assert.Fail("Should not be okay");
-        if (stub is Err<List<ValidationResult>>({ Count: < 2 } err))
+        if (stub is StubStruct) Assert.Fail("Should not be okay");
+        if (stub is List<ValidationResult>{ Count: < 2 } err)
         {
             err.ForEach(e => TestContext.WriteLine($"{e}"));
             Assert.Fail($"Should be 2 errors. Got {err.Count}");
@@ -138,7 +138,7 @@ public class Create_Struct
     {
         var stub = StubStruct.Create(5, "");
 
-        if (stub is Ok<StubStruct>) Assert.Fail("Should not be okay");
+        if (stub is StubStruct) Assert.Fail("Should not be okay");
         var errors = stub.UnwrapErr();
         Assert.HasCount(1, errors);
     }
@@ -154,7 +154,7 @@ public class Create_Class
     {
         var stub = StubClass.Create("Book", 19.99m, ["fiction", "bestseller"]);
 
-        if (stub is Err<List<ValidationResult>>(var err))
+        if (stub is List<ValidationResult> err)
         {
             err.ForEach(Console.WriteLine);
             Assert.Fail("Should not be failing");
@@ -171,7 +171,7 @@ public class Create_Class
     {
         var stub = StubClass.Create("Book", 5000m, []);
 
-        if (stub is Ok<StubClass>) Assert.Fail("Should not be okay");
+        if (stub is StubClass) Assert.Fail("Should not be okay");
         var errors = stub.UnwrapErr();
         Assert.IsGreaterThanOrEqualTo(1, errors.Count);
         Assert.Contains(e => e.MemberNames.Contains("Price"), errors);
@@ -182,8 +182,8 @@ public class Create_Class
     {
         var stub = StubClass.Create("", -1m, null!);
 
-        if (stub is Ok<StubClass>) Assert.Fail("Should not be okay");
-        if (stub is Err<List<ValidationResult>>({ Count: < 3 } err))
+        if (stub is StubClass) Assert.Fail("Should not be okay");
+        if (stub is List<ValidationResult>{ Count: < 3 } err)
         {
             err.ForEach(e => TestContext.WriteLine($"{e}"));
             Assert.Fail($"Should be 3 errors. Got {err.Count}");
@@ -195,7 +195,7 @@ public class Create_Class
     {
         var stub = StubClassWithOptional.Create("ABC", null);
 
-        if (stub is Err<List<ValidationResult>>(var err))
+        if (stub is List<ValidationResult> err)
         {
             err.ForEach(Console.WriteLine);
             Assert.Fail("Should not be failing");
@@ -211,7 +211,7 @@ public class Create_Class
     {
         var stub = StubClassWithOptional.Create("ABC", "not-an-email", 5);
 
-        if (stub is Ok<StubClassWithOptional>) Assert.Fail("Should not be okay");
+        if (stub is StubClassWithOptional) Assert.Fail("Should not be okay");
         var errors = stub.UnwrapErr();
 
         Assert.Contains(e => e.MemberNames.Contains("Email"), errors);
@@ -228,7 +228,7 @@ public class Create_SimpleTypes
     {
         var stub = StubStructSimple.Create(128);
 
-        if (stub is Err<List<ValidationResult>>(var err))
+        if (stub is List<ValidationResult> err)
         {
             err.ForEach(Console.WriteLine);
             Assert.Fail("Should not be failing");
@@ -245,7 +245,7 @@ public class Create_SimpleTypes
         var stubInvalid = StubStructSimple.Create(300);
         _ = stub; // 200 é válido
 
-        if (stubInvalid is Ok<StubStructSimple>) Assert.Fail("Should not be okay");
+        if (stubInvalid is StubStructSimple) Assert.Fail("Should not be okay");
         Assert.HasCount(1, stubInvalid.UnwrapErr());
     }
 
@@ -254,7 +254,7 @@ public class Create_SimpleTypes
     {
         var stub = StubClassSimple.Create("hello");
 
-        if (stub is Err<List<ValidationResult>>(var err))
+        if (stub is List<ValidationResult> err)
         {
             err.ForEach(Console.WriteLine);
             Assert.Fail("Should not be failing");
@@ -268,7 +268,7 @@ public class Create_SimpleTypes
     {
         var stub = StubClassSimple.Create(string.Empty);
 
-        if (stub is Ok<StubClassSimple>) Assert.Fail("Should not be okay");
+        if (stub is StubClassSimple) Assert.Fail("Should not be okay");
         Assert.HasCount(1, stub.UnwrapErr());
     }
 }
