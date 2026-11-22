@@ -29,7 +29,12 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
         if (constructor is null)
             return;
 
+        var classType = type.IsRecord 
+            ? type.IsReferenceType ? "record class" : "record struct"
+            : type.IsReferenceType ? "class" : "struct";
+
         var constructorParams = JoinStringComma(constructor.Parameters.Select(e => $"{e.Type} {e.Name}"));
+        var constructorParamsMayHaveDefault = JoinStringComma(constructor.Parameters.Select(e => $"{e.Type} {e.Name} {(e.HasExplicitDefaultValue ? $"= {e.ExplicitDefaultValue}" : "")}"));
         var constructorParamsNames = JoinStringComma(constructor.Parameters.Select(e => $"{e.Name}"));
         var constructorParamsTypes = JoinStringComma(constructor.Parameters.Select(e => $"{e.Type}"));
 
@@ -39,6 +44,7 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
         var arrays = fieldAndValidator.Where(e => !string.IsNullOrWhiteSpace(e.Item2)).Select((n) => CreateStaticValidationArray(n.Item1, n.Item2)).ToList();
         var validations = fieldAndValidator.Where(e => !string.IsNullOrWhiteSpace(e.Item2)).Select((n) => CreateValidations(n.Item1)).ToList();
         var contexts = fieldAndValidator.Where(e => !string.IsNullOrWhiteSpace(e.Item2)).Select((n) => CreateContextArray(n.Item1)).ToList();
+        var nonRecordFields = string.Join("\n", constructor.Parameters.Select(e => $"public {e.Type} {e.Name} = {e.Name};"));
 
         var code = $$"""
             {{(namespaceName?.ToDisplayString() is { Length: > 0 } ? $"namespace {namespaceName};" : "")}}
@@ -46,19 +52,18 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
             using SmartCtor.Monadics;
 
             #nullable enable
-            public static class {{type.Name}}SmartCtor
+            public partial {{classType}} {{type.Name}}
             {
-                private static object stubObjectValidation = new object();
-                {{string.Join("\n", contexts)}}
+                {{(!type.IsRecord ? nonRecordFields : "")}}
 
-                extension ({{type.Name}}) {
-                    public static Result<{{type.Name}}, List<ValidationResult>> Create ({{constructorParams}}) {
-                        var validationResults = new List<ValidationResult>();
-                        {{string.Join("\n", arrays)}}
-                        {{string.Join("\n", validations)}}
-                        if (validationResults.Count > 0) return validationResults;
-                        return new {{type.Name}}({{constructorParamsNames}});
-                    }
+                public static Result<{{type.Name}}, List<ValidationResult>> Create ({{constructorParamsMayHaveDefault}}) {
+                    var stub = new {{type.Name}}({{constructorParamsNames}});
+                    var stub_context = new ValidationContext(stub, nameof({{type.Name}}), null, null);
+                    var validationResults = new List<ValidationResult>();
+                    {{string.Join("\n", arrays)}}
+                    {{string.Join("\n", validations)}}
+                    if (validationResults.Count > 0) return validationResults;
+                    return stub;
                 }
             }
 
@@ -72,7 +77,8 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
 
     public static string CreateValidations(string member) {
         return $$"""
-            Validator.TryValidateValue({{member}}, _{{member}}_Context, validationResults, _{{member}});
+            stub_context.MemberName = "{{member}}";
+            Validator.TryValidateValue({{member}}, stub_context, validationResults, _{{member}});
         """;
     }
 
@@ -84,7 +90,7 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
 
     public static string CreateContextArray(string member) {
         return $$"""
-            private static readonly ValidationContext _{{member}}_Context = new (stubObjectValidation, "{{member}}", null, null);
+            ValidationContext _{{member}}_Context = new (stub, _stub_type, null, null) { MemberName = "{{member}}" };
         """;
     }
 }
