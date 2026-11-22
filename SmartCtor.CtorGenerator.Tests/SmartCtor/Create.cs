@@ -7,7 +7,7 @@ namespace SmartCtor.CtorGenerator.Tests;
 [SmartCtor]
 public partial record StubUser([Range(0, 100)] int Identification, [Required] string? Name);
 
-[SmartCtor]
+[SmartCtor(GenerateOptional = true)]
 public partial record StringTests([Required] string Item1, [Required] string? Item2);
 
 [SmartCtor]
@@ -18,7 +18,7 @@ public partial record Transaction (
     DateTime Date
 );
 
-[SmartCtor]
+[SmartCtor(GenerateOptional = true)]
 public partial struct StubStruct(
     [Range(1, 10)] int Level,
     [Required, StringLength(maximumLength: 20, MinimumLength = 3)] string Name
@@ -31,7 +31,7 @@ public partial class StubClass(
     [Required] List<string> Tags
 );
 
-[SmartCtor]
+[SmartCtor(GenerateOptional = true)]
 public partial class StubClassWithOptional(
     [Required] string Code,
     [EmailAddress] string? Email,

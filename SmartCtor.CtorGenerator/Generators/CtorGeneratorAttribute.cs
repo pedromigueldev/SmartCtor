@@ -15,7 +15,9 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
             namespace SmartCtor.Attribute;
 
             [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
-            public sealed class SmartCtorAttribute : System.Attribute;
+            public sealed class SmartCtorAttribute : System.Attribute {
+                public bool GenerateOptional = false;
+            };
             """;
 
             ctx.AddSource("SmartCtorAttribute.g.cs", theCode);
@@ -24,15 +26,19 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
         var provider = context.SyntaxProvider.ForAttributeWithMetadataName(
             fullyQualifiedMetadataName: "SmartCtor.Attribute.SmartCtorAttribute",
             predicate: static (node, _) => node is TypeDeclarationSyntax,
-            transform: static (ctx, _) => (INamedTypeSymbol)ctx.TargetSymbol
-        ).Where(e => e is not null);
+            transform: static (ctx, _) => {
+            var attribute = ctx.Attributes[0];
+            var generateOptional = attribute.NamedArguments.FirstOrDefault(x => x.Key == "GenerateOptional").Value.Value as bool? ?? false;
+            return (Symbol: (INamedTypeSymbol)ctx.TargetSymbol, GenerateOptional: generateOptional);
+        });
 
         var compilation = context.CompilationProvider.Combine(provider.Collect());
-
         context.RegisterSourceOutput(provider, Execute);
     }
 
-    private static void Execute(SourceProductionContext context, INamedTypeSymbol type) {
+    private static void Execute(SourceProductionContext context, (INamedTypeSymbol type, bool generateOptional) value) {
+        (var type, var generateOptional) = value;
+
         var namespaceName = type.ContainingNamespace.IsGlobalNamespace ? null : type.ContainingNamespace;
         var paramsList = type.TypeParameters.Select(e => $"{e.TypeKind} {e.Name}");
 
@@ -56,8 +62,8 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
 
         var arrays = fieldAndValidator.Where(e => !string.IsNullOrWhiteSpace(e.Item2)).Select((n) => CreateStaticValidationArray(n.Item1, n.Item2)).ToList();
         var validations = fieldAndValidator.Where(e => !string.IsNullOrWhiteSpace(e.Item2)).Select((n) => CreateValidations(n.Item1)).ToList();
-        var contexts = fieldAndValidator.Where(e => !string.IsNullOrWhiteSpace(e.Item2)).Select((n) => CreateContextArray(n.Item1)).ToList();
         var nonRecordFields = string.Join("\n", constructor.Parameters.Select(e => $"public {e.Type} {e.Name} = {e.Name};"));
+
 
         var code = $$"""
             {{(namespaceName?.ToDisplayString() is { Length: > 0 } ? $"namespace {namespaceName};" : "")}}
@@ -81,6 +87,8 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
                     return stub;
                 }
             }
+
+            {{(generateOptional ? GenerateOptional(classType, type.Name, constructor) : "")}}
 
             #nullable disable
         """;
@@ -115,6 +123,31 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
         return $$"""
             private {{name}} ()
                 : this ({{defautls}}) { }
+        """;
+    }
+
+    public static string GenerateOptional (string classType, string name, IMethodSymbol constructor) {
+        static string GetOptionalOfType (IParameterSymbol e) {
+            var type = e.Type is INamedTypeSymbol namedType &&
+                namedType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T 
+                ? namedType.TypeArguments[0]
+                : e.Type;
+
+
+            type = type.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
+
+            return $"Option<Option<{type.ToDisplayString()}>> {e.Name}";
+        };
+
+        var optionalFields = string.Join("\n", constructor.Parameters.Select(e =>
+            $"public {GetOptionalOfType(e)} = {e.Name};"));
+            
+        var constructorParams = JoinStringComma(constructor.Parameters.Select(e => $"{GetOptionalOfType(e)} = default!"));
+
+        return $$"""
+        public partial {{classType}} {{name}}Optional({{constructorParams}}) {
+            {{optionalFields}}
+        }
         """;
     }
 }

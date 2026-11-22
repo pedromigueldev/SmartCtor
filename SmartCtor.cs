@@ -1,5 +1,6 @@
 #:property LangVersion=latest
 #:property PackAsTool=false
+#:property WarningsAsErrors=Nullable
 
 #:include SmartCtor.Monadics/Monadics.cs
 #:ref SmartCtor.CtorGenerator/CtorGenerator.cs OutputItemType=Analyzer ReferenceOutputAssembly=false
