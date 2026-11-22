@@ -1,4 +1,3 @@
-#:property PublishAot=true
 #:property LangVersion=latest
 #:property PackAsTool=false
 
