@@ -8,6 +8,19 @@ namespace SmartCtor.Generators;
 [Generator]
 public class CtorGeneratorAttribute : IIncrementalGenerator {
     public void Initialize(IncrementalGeneratorInitializationContext context) {
+
+        context.RegisterPostInitializationOutput(ctx =>
+        {
+            var theCode = $$"""
+            namespace SmartCtor.Attribute;
+
+            [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
+            public sealed class SmartCtorAttribute : System.Attribute;
+            """;
+
+            ctx.AddSource("SmartCtorAttribute.g.cs", theCode);
+        });
+
         var provider = context.SyntaxProvider.ForAttributeWithMetadataName(
             fullyQualifiedMetadataName: "SmartCtor.Attribute.SmartCtorAttribute",
             predicate: static (node, _) => node is TypeDeclarationSyntax,

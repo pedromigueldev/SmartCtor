@@ -12,6 +12,5 @@
 #:property PackAsTool=false
 #:property IncludeBuildOutput=false
 
-#:include Attributes/*.cs
 #:include Generators/*.cs
 #:include Monadics/*.cs
