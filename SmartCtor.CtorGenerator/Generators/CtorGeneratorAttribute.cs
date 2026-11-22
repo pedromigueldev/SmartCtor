@@ -69,6 +69,8 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
             {
                 {{(!type.IsRecord ? nonRecordFields : "")}}
 
+                {{(type.IsReferenceType ? CreateEmptyConstructor(type.Name, constructor) : "")}}
+
                 public static Result<{{type.Name}}, List<ValidationResult>> Create ({{constructorParamsMayHaveDefault}}) {
                     var stub = new {{type.Name}}({{constructorParamsNames}});
                     var stub_context = new ValidationContext(stub, nameof({{type.Name}}), null, null);
@@ -104,6 +106,15 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
     public static string CreateContextArray(string member) {
         return $$"""
             ValidationContext _{{member}}_Context = new (stub, _stub_type, null, null) { MemberName = "{{member}}" };
+        """;
+    }
+
+    public static string CreateEmptyConstructor(string name, IMethodSymbol namedType) {
+
+        var defautls = string.Join(", ", namedType.Parameters.Select(e => $"{(e.HasExplicitDefaultValue ? $"{e.ExplicitDefaultValue}" : $"({e.Type.ToDisplayString()})default!")}"));
+        return $$"""
+            private {{name}} ()
+                : this ({{defautls}}) { }
         """;
     }
 }
