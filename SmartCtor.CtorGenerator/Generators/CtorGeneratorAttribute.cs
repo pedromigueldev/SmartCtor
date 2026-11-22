@@ -145,9 +145,7 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
         var constructorParams = JoinStringComma(constructor.Parameters.Select(e => $"{GetOptionalOfType(e)} = default!"));
 
         return $$"""
-        public partial {{classType}} {{name}}Optional({{constructorParams}}) {
-            {{optionalFields}}
-        }
+        public partial record {{name}}Optional({{constructorParams}});
         """;
     }
 }
