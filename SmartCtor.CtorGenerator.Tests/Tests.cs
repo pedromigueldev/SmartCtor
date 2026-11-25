@@ -8,7 +8,6 @@
 #:property EnableMSTestRunner=true
 #:property WarningsAsErrors=Nullable
 
-#:ref ../SmartCtor.CtorGenerator/CtorGenerator.cs OutputItemType=Analyzer
-#:include ../SmartCtor.Monadics/Monadics.cs
 
+#:include ../SmartCtor.cs
 #:include SmartCtor/*.cs

@@ -89,6 +89,7 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
             }
 
             {{(generateOptional ? GenerateOptional(classType, type.Name, constructor) : "")}}
+            {{(generateOptional ? GenerateOptionalPatch(classType, type.Name, constructor) : "")}}
 
             #nullable disable
         """;
@@ -126,6 +127,15 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
         """;
     }
 
+    public static ITypeSymbol StripNullable (IParameterSymbol e) {
+        var type = e.Type is INamedTypeSymbol namedType &&
+            namedType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T 
+            ? namedType.TypeArguments[0]
+            : e.Type;
+
+
+        return type.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
+    }
     public static string GenerateOptional (string classType, string name, IMethodSymbol constructor) {
         static string GetOptionalOfType (IParameterSymbol e) {
             var type = e.Type is INamedTypeSymbol namedType &&
@@ -146,6 +156,40 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
 
         return $$"""
         public partial record {{name}}Optional({{constructorParams}});
+        """;
+    }
+
+    public static string ToCamelCase(string input)
+    {
+        if (string.IsNullOrEmpty(input) || char.IsLower(input[0]))
+            return input;
+
+        return char.ToLowerInvariant(input[0]) + input.Substring(1);
+    }
+
+
+    public static string GenerateOptionalPatch(string classType, string name, IMethodSymbol constructor) {
+        var modelSet = constructor.Parameters.Select(e => (e, StripNullable(e))).Select((values) => {
+            var (e, t) = values;
+           return $$"""
+            {{ToCamelCase(name)}}Optional.{{e.Name}} switch {
+                Option<{{t}}> t => t switch {
+                    {{t}} a => a,
+                    _ => ({{e.Type}})default!
+                },
+                None => self.{{e.Name}}
+            }
+           """;
+        });
+
+        return $$"""
+        public static class {{name}}OptionalExt {
+            extension ({{name}} self) {
+                public Result<{{name}}, List<ValidationResult>> CreatePathced({{name}}Optional {{ToCamelCase(name)}}Optional) {
+                    return {{name}}.Create({{JoinStringComma(modelSet)}});
+                }
+            }
+        }
         """;
     }
 }
