@@ -136,18 +136,11 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
 
         return type.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
     }
+    static string GetOptionalOfType (IParameterSymbol e) {
+        return $"Option<Option<{StripNullable(e).ToDisplayString()}>> {e.Name}";
+    }
+
     public static string GenerateOptional (string classType, string name, IMethodSymbol constructor) {
-        static string GetOptionalOfType (IParameterSymbol e) {
-            var type = e.Type is INamedTypeSymbol namedType &&
-                namedType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T 
-                ? namedType.TypeArguments[0]
-                : e.Type;
-
-
-            type = type.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
-
-            return $"Option<Option<{type.ToDisplayString()}>> {e.Name}";
-        };
 
         var optionalFields = string.Join("\n", constructor.Parameters.Select(e =>
             $"public {GetOptionalOfType(e)} = {e.Name};"));
@@ -169,6 +162,19 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
 
 
     public static string GenerateOptionalPatch(string classType, string name, IMethodSymbol constructor) {
+        var modelSetParams = constructor.Parameters.Select(e => (e, StripNullable(e))).Select((values) => {
+            var (e, t) = values;
+           return $$"""
+            {{e.Name}} switch {
+                Option<{{t}}> t => t switch {
+                    {{t}} a => a,
+                    _ => ({{e.Type}})default!
+                },
+                None => self.{{e.Name}}
+            }
+           """;
+        });
+
         var modelSet = constructor.Parameters.Select(e => (e, StripNullable(e))).Select((values) => {
             var (e, t) = values;
            return $$"""
@@ -182,11 +188,17 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
            """;
         });
 
+        var constructorParams = JoinStringComma(constructor.Parameters.Select(e => $"{GetOptionalOfType(e)}"));
+
         return $$"""
         public static class {{name}}OptionalExt {
             extension ({{name}} self) {
                 public Result<{{name}}, List<ValidationResult>> CreatePathced({{name}}Optional {{ToCamelCase(name)}}Optional) {
                     return {{name}}.Create({{JoinStringComma(modelSet)}});
+                }
+
+                public Result<{{name}}, List<ValidationResult>> CreatePathced({{constructorParams}}) {
+                    return {{name}}.Create({{JoinStringComma(modelSetParams)}});
                 }
             }
         }
