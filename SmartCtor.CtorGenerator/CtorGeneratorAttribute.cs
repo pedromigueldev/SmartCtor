@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace SmartCtor.Generators;
+namespace SmartCtor.CtorGenerator;
 
 [Generator]
 public class CtorGeneratorAttribute : IIncrementalGenerator {
@@ -14,7 +14,7 @@ public class CtorGeneratorAttribute : IIncrementalGenerator {
             var theCode = $$"""
             namespace SmartCtor.Attribute;
 
-            [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
+            [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
             public sealed class SmartCtorAttribute : System.Attribute {
                 public bool GenerateOptional = false;
             };
