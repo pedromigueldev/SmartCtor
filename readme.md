@@ -1,17 +1,19 @@
 # SmartCtor
 
-An AOT safe C# file-based source generator designed to simplify constructor generation and reduce boilerplate, alongside reusable monadic utilities.
+An AOT-safe C# source generator that creates validated smart constructors from DataAnnotations, alongside reusable monadic utilities.
 
 ## Features
 
-- Roslyn-based source generation.
-- Simplified constructor-related code.
+- Roslyn incremental source generator.
+- Generates a validated `Create(...)` factory returning `Result<T, List<ValidationResult>>`.
+- Optional patch support (`GenerateOptional = true`) with `CreatePathced(...)`.
 - Functional programming utilities (`Option` and `Result`).
-- Modern C# implementation.
+- Modern C# (requires .NET 11 / C# unions).
 
-## Exemple
+## Example
 
-This exemple will fail successfully with 3 errors.
+This example will fail successfully with 3 errors.
+
 ```cs
 using System.ComponentModel.DataAnnotations;
 using SmartCtor.Monadics;
@@ -19,8 +21,8 @@ using SmartCtor.Attribute;
 
 Result<Transaction, List<ValidationResult>> stub = Transaction.Create(1000, "12345", null!, DateTime.MinValue);
 
-if (stub is Ok<Transaction>) throw new Exception("Should not be okay");
-if (stub is Err<List<ValidationResult>>({ Count : < 3 } err))
+if (stub is Transaction) throw new Exception("Should not be okay");
+if (stub is List<ValidationResult> { Count: < 3 } err)
 {
     err.ForEach(Console.WriteLine);
     throw new Exception($"Should be 3 errors. Give {err.Count}");
@@ -29,37 +31,52 @@ if (stub is Err<List<ValidationResult>>({ Count : < 3 } err))
 stub.UnwrapErr().ForEach(Console.WriteLine);
 
 [SmartCtor]
-public record Transaction (
-    [Required, Range(0, 100)] decimal Amount, 
-    [Required, StringLength(maximumLength: 10, MinimumLength = 6)] string Description, 
+public partial record Transaction(
+    [Required, Range(0, 100)] decimal Amount,
+    [Required, StringLength(maximumLength: 10, MinimumLength = 6)] string Description,
     [Required] List<int> Categories,
     DateTime Date
 );
 ```
-## Clone the repository:
+
+> Types annotated with `[SmartCtor]` must be `partial`.
+
+## Requirements
+
+- .NET 11 SDK.
+- Consuming projects must target `net11.0` or later.
+
+## Clone the repository
 
 ```bash
 git clone https://github.com/pedromigueldev/SmartCtor.git
 cd SmartCtor
 ```
 
-## Test the project 
+## Build and test
 
 ```bash
-dotnet SmartCtor.CtorGenerator.Tests/Tests.cs
+dotnet build SmartCtor.slnx
+dotnet run --project SmartCtor.CtorGenerator.Tests/Tests.csproj
 ```
 
-To use this project in a file based c# projet just include the path to the SmartCtor.cs
+The generated sources of the test project are written to `SmartCtor.CtorGenerator.Tests/gen/` for inspection.
 
-```cs
-#:include Vendor/SmartCtor/SmartCtor.cs
+## Use it in another project
+
+Import `SmartCtor.props` in your `.csproj`. It references both the monadics library and the source generator:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+  </PropertyGroup>
+
+  <Import Project="path/to/SmartCtor/SmartCtor.props" />
+
+</Project>
 ```
-
-## Project Structure
-
-- `SmartCtor.CtorGenerator` — Source generator.
-- `SmartCtor.Monadics` — Monadic utilities.
-- `SmartCtor.CtorGenerator.Tests` — Generator tests.
 
 ## License
 
