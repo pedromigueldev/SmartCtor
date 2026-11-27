@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/SmartCtor.CtorGenerator.Tests/">
+    <Project Path="SmartCtor.CtorGenerator.Tests/Tests.csproj" />
+  </Folder>
+  <Project Path="SmartCtor.CtorGenerator/SmartCtor.CtorGenerator.csproj" />
+  <Project Path="SmartCtor.Monadics/SmartCtor.Monadics.csproj" />
+</Solution>
